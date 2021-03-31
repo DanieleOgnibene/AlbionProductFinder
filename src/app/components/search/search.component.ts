@@ -1,4 +1,4 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, Inject, OnDestroy, OnInit, PLATFORM_ID, ViewChild} from '@angular/core';
 import {MatSort} from '@angular/material/sort';
 import {MatPaginator} from '@angular/material/paginator';
 import {FormControl, FormGroup} from '@angular/forms';
@@ -9,28 +9,31 @@ import {HttpClient} from '@angular/common/http';
 import {Item} from '../../interfaces/item';
 import * as _ from 'lodash';
 import {City} from '../../interfaces/city';
-import {distinctUntilChanged, map} from 'rxjs/operators';
+import {debounceTime, distinctUntilChanged, map, takeUntil} from 'rxjs/operators';
+import {isPlatformBrowser} from '@angular/common';
+import {Subject} from 'rxjs';
 
 @Component({
   selector: 'app-search',
   template: `
     <small><i class="data-project-banner">Prices are provided by the <a href="https://www.albion-online-data.com/" target="_blank">Albion
       Online Data Project</a></i></small>
-    <div [ngClass]="{ 'with-results': !!results }" class="search-form">
+    <div [ngClass]="{ 'with-results': !!dataSource }" class="search-form">
       <div class="first-row">
         <mat-form-field class="buy-at-control">
           <mat-label>Where do you want to buy?</mat-label>
           <mat-select [formControl]="searchForm.controls.buyAt">
+            <mat-option value="all">All</mat-option>
             <mat-option *ngFor="let city of cities" [value]="city">{{city}}</mat-option>
           </mat-select>
         </mat-form-field>
         <mat-form-field class="sell-at-control">
           <mat-label>Where do you want to sell?</mat-label>
           <mat-select [formControl]="searchForm.controls.sellAt">
+            <mat-option value="all">All</mat-option>
             <mat-option *ngFor="let city of cities" [value]="city">{{city}}</mat-option>
           </mat-select>
         </mat-form-field>
-        <mat-checkbox color="primary" [formControl]="searchForm.controls.filterByLocation">Filter by location</mat-checkbox>
       </div>
       <div class="second-row">
         <mat-form-field>
@@ -51,8 +54,20 @@ import {distinctUntilChanged, map} from 'rxjs/operators';
       </div>
     </div>
 
-    <div [ngClass]="{ visible: !!results }" class="results">
-      <table mat-table [dataSource]="results" matSort>
+    <div [ngClass]="{ visible: !!dataSource }" class="results">
+      <mat-form-field class="search-item-control">
+        <mat-label>Search an item</mat-label>
+        <input matInput [formControl]="searchFilter" placeholder="Search">
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Order by date</mat-label>
+        <mat-select [formControl]="orderByDate">
+          <mat-option value="deactivate">Deactivate</mat-option>
+          <mat-option value="buy">Buy Items</mat-option>
+          <mat-option value="sell">Sell Items</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <table mat-table [dataSource]="dataSource" matSort>
 
         <ng-container matColumnDef="buy">
           <th mat-header-cell *matHeaderCellDef>Buy</th>
@@ -92,7 +107,7 @@ import {distinctUntilChanged, map} from 'rxjs/operators';
   `,
   styleUrls: ['./search.component.scss']
 })
-export class SearchComponent implements OnInit {
+export class SearchComponent implements OnInit, OnDestroy {
 
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -100,15 +115,16 @@ export class SearchComponent implements OnInit {
   searchForm = new FormGroup({
     silver: new FormControl(100000000),
     itemType: new FormControl(ItemType.Accessories),
-    buyAt: new FormControl(City.FortSterling),
-    sellAt: new FormControl(City.BlackMarket),
-    filterByLocation: new FormControl(true)
+    buyAt: new FormControl('all'),
+    sellAt: new FormControl('all')
   });
+  searchFilter = new FormControl('');
+  orderByDate = new FormControl('deactivate');
   displayedColumns: string[] = ['buy', 'sell', 'profit', 'profitPerc'];
   itemTypes = Object.values(ItemType);
   cities = Object.values(City);
   isLoading = false;
-  results: MatTableDataSource<Result>;
+  dataSource: MatTableDataSource<Result>;
 
   private readonly baseUrl = 'https://www.albion-online-data.com/api/v1/stats/prices/';
   private readonly accessoriesUrl = `T2_CAPE,T3_CAPE,T4_CAPE,T4_CAPE@1,T4_CAPE@2,T4_CAPE@3,T5_CAPE,T5_CAPE@1,T5_CAPE@2,T5_CAPE@3,T6_CAPE,T6_CAPE@1,T6_CAPE@2,T6_CAPE@3,T7_CAPE,T7_CAPE@1,T7_CAPE@2,T7_CAPE@3,T8_CAPE,T8_CAPE@1,T8_CAPE@2,T8_CAPE@3,T4_CAPEITEM_FW_BRIDGEWATCH,T4_CAPEITEM_FW_BRIDGEWATCH@1,T4_CAPEITEM_FW_BRIDGEWATCH@2,T4_CAPEITEM_FW_BRIDGEWATCH@3,T5_CAPEITEM_FW_BRIDGEWATCH,T5_CAPEITEM_FW_BRIDGEWATCH@1,T5_CAPEITEM_FW_BRIDGEWATCH@2,T5_CAPEITEM_FW_BRIDGEWATCH@3,T6_CAPEITEM_FW_BRIDGEWATCH,T6_CAPEITEM_FW_BRIDGEWATCH@1,T6_CAPEITEM_FW_BRIDGEWATCH@2,T6_CAPEITEM_FW_BRIDGEWATCH@3,T7_CAPEITEM_FW_BRIDGEWATCH,T7_CAPEITEM_FW_BRIDGEWATCH@1,T7_CAPEITEM_FW_BRIDGEWATCH@2,T7_CAPEITEM_FW_BRIDGEWATCH@3,T8_CAPEITEM_FW_BRIDGEWATCH,T8_CAPEITEM_FW_BRIDGEWATCH@1,T8_CAPEITEM_FW_BRIDGEWATCH@2,T8_CAPEITEM_FW_BRIDGEWATCH@3,T4_CAPEITEM_FW_FORTSTERLING,T4_CAPEITEM_FW_FORTSTERLING@1,T4_CAPEITEM_FW_FORTSTERLING@2,T4_CAPEITEM_FW_FORTSTERLING@3,T5_CAPEITEM_FW_FORTSTERLING,T5_CAPEITEM_FW_FORTSTERLING@1,T5_CAPEITEM_FW_FORTSTERLING@2,T5_CAPEITEM_FW_FORTSTERLING@3,T6_CAPEITEM_FW_FORTSTERLING,T6_CAPEITEM_FW_FORTSTERLING@1,T6_CAPEITEM_FW_FORTSTERLING@2,T6_CAPEITEM_FW_FORTSTERLING@3,T7_CAPEITEM_FW_FORTSTERLING,T7_CAPEITEM_FW_FORTSTERLING@1,T7_CAPEITEM_FW_FORTSTERLING@2,T7_CAPEITEM_FW_FORTSTERLING@3,T8_CAPEITEM_FW_FORTSTERLING,T8_CAPEITEM_FW_FORTSTERLING@1,T8_CAPEITEM_FW_FORTSTERLING@2,T8_CAPEITEM_FW_FORTSTERLING@3,T4_CAPEITEM_FW_LYMHURST,T4_CAPEITEM_FW_LYMHURST@1,T4_CAPEITEM_FW_LYMHURST@2,T4_CAPEITEM_FW_LYMHURST@3,T5_CAPEITEM_FW_LYMHURST,T5_CAPEITEM_FW_LYMHURST@1,T5_CAPEITEM_FW_LYMHURST@2,T5_CAPEITEM_FW_LYMHURST@3,T6_CAPEITEM_FW_LYMHURST,T6_CAPEITEM_FW_LYMHURST@1,T6_CAPEITEM_FW_LYMHURST@2,T6_CAPEITEM_FW_LYMHURST@3,T7_CAPEITEM_FW_LYMHURST,T7_CAPEITEM_FW_LYMHURST@1,T7_CAPEITEM_FW_LYMHURST@2,T7_CAPEITEM_FW_LYMHURST@3,T8_CAPEITEM_FW_LYMHURST,T8_CAPEITEM_FW_LYMHURST@1,T8_CAPEITEM_FW_LYMHURST@2,T8_CAPEITEM_FW_LYMHURST@3,T4_CAPEITEM_FW_MARTLOCK,T4_CAPEITEM_FW_MARTLOCK@1,T4_CAPEITEM_FW_MARTLOCK@2,T4_CAPEITEM_FW_MARTLOCK@3,T5_CAPEITEM_FW_MARTLOCK,T5_CAPEITEM_FW_MARTLOCK@1,T5_CAPEITEM_FW_MARTLOCK@2,T5_CAPEITEM_FW_MARTLOCK@3,T6_CAPEITEM_FW_MARTLOCK,T6_CAPEITEM_FW_MARTLOCK@1,T6_CAPEITEM_FW_MARTLOCK@2,T6_CAPEITEM_FW_MARTLOCK@3,T7_CAPEITEM_FW_MARTLOCK,T7_CAPEITEM_FW_MARTLOCK@1,T7_CAPEITEM_FW_MARTLOCK@2,T7_CAPEITEM_FW_MARTLOCK@3,T8_CAPEITEM_FW_MARTLOCK,T8_CAPEITEM_FW_MARTLOCK@1,T8_CAPEITEM_FW_MARTLOCK@2,T8_CAPEITEM_FW_MARTLOCK@3,T4_CAPEITEM_FW_THETFORD,T4_CAPEITEM_FW_THETFORD@1,T4_CAPEITEM_FW_THETFORD@2,T4_CAPEITEM_FW_THETFORD@3,T5_CAPEITEM_FW_THETFORD,T5_CAPEITEM_FW_THETFORD@1,T5_CAPEITEM_FW_THETFORD@2,T5_CAPEITEM_FW_THETFORD@3,T6_CAPEITEM_FW_THETFORD,T6_CAPEITEM_FW_THETFORD@1,T6_CAPEITEM_FW_THETFORD@2,T6_CAPEITEM_FW_THETFORD@3,T7_CAPEITEM_FW_THETFORD,T7_CAPEITEM_FW_THETFORD@1,T7_CAPEITEM_FW_THETFORD@2,T7_CAPEITEM_FW_THETFORD@3,T8_CAPEITEM_FW_THETFORD,T8_CAPEITEM_FW_THETFORD@1`;
@@ -134,14 +150,27 @@ export class SearchComponent implements OnInit {
   private readonly trophiesUrl = 'UNIQUE_FURNITUREITEM_FOUNDER_LOOKINGGLASS,T2_FURNITUREITEM_TROPHY_GENERAL,T3_FURNITUREITEM_TROPHY_GENERAL,T4_FURNITUREITEM_TROPHY_GENERAL,T5_FURNITUREITEM_TROPHY_GENERAL,T6_FURNITUREITEM_TROPHY_GENERAL,T7_FURNITUREITEM_TROPHY_GENERAL,T8_FURNITUREITEM_TROPHY_GENERAL,T8_FURNITUREITEM_TROPHY_FISHING_BOSS,T2_FURNITUREITEM_TROPHY_MERCENARY,T3_FURNITUREITEM_TROPHY_MERCENARY,T4_FURNITUREITEM_TROPHY_MERCENARY,T5_FURNITUREITEM_TROPHY_MERCENARY,T6_FURNITUREITEM_TROPHY_MERCENARY,T7_FURNITUREITEM_TROPHY_MERCENARY,T8_FURNITUREITEM_TROPHY_MERCENARY,T2_FURNITUREITEM_TROPHY_HIDE,T3_FURNITUREITEM_TROPHY_HIDE,T4_FURNITUREITEM_TROPHY_HIDE,T5_FURNITUREITEM_TROPHY_HIDE,T6_FURNITUREITEM_TROPHY_HIDE,T7_FURNITUREITEM_TROPHY_HIDE,T8_FURNITUREITEM_TROPHY_HIDE,T2_FURNITUREITEM_TROPHY_ORE,T3_FURNITUREITEM_TROPHY_ORE,T4_FURNITUREITEM_TROPHY_ORE,T5_FURNITUREITEM_TROPHY_ORE,T6_FURNITUREITEM_TROPHY_ORE,T7_FURNITUREITEM_TROPHY_ORE,T8_FURNITUREITEM_TROPHY_ORE,T2_FURNITUREITEM_TROPHY_FIBER,T3_FURNITUREITEM_TROPHY_FIBER,T4_FURNITUREITEM_TROPHY_FIBER,T5_FURNITUREITEM_TROPHY_FIBER,T6_FURNITUREITEM_TROPHY_FIBER,T7_FURNITUREITEM_TROPHY_FIBER,T8_FURNITUREITEM_TROPHY_FIBER,T2_FURNITUREITEM_TROPHY_ROCK,T3_FURNITUREITEM_TROPHY_ROCK,T4_FURNITUREITEM_TROPHY_ROCK,T5_FURNITUREITEM_TROPHY_ROCK,T6_FURNITUREITEM_TROPHY_ROCK,T7_FURNITUREITEM_TROPHY_ROCK,T8_FURNITUREITEM_TROPHY_ROCK,T2_FURNITUREITEM_TROPHY_WOOD,T3_FURNITUREITEM_TROPHY_WOOD,T4_FURNITUREITEM_TROPHY_WOOD,T5_FURNITUREITEM_TROPHY_WOOD,T6_FURNITUREITEM_TROPHY_WOOD,T7_FURNITUREITEM_TROPHY_WOOD,T8_FURNITUREITEM_TROPHY_WOOD,T2_FURNITUREITEM_TROPHY_FISH,T3_FURNITUREITEM_TROPHY_FISH,T4_FURNITUREITEM_TROPHY_FISH,T5_FURNITUREITEM_TROPHY_FISH,T6_FURNITUREITEM_TROPHY_FISH,T7_FURNITUREITEM_TROPHY_FISH,T8_FURNITUREITEM_TROPHY_FISH';
 
   private itemsIdMap: Map<string, string>;
+  private unsubscribe$ = new Subject<void>();
+  private results: Result[] = [];
 
   constructor(
-    private readonly httpClient: HttpClient
+    private readonly httpClient: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: string
   ) {}
 
   ngOnInit(): void {
+    const isBrowser = isPlatformBrowser(this.platformId);
+    if (!isBrowser) {
+      return;
+    }
     this.initItemsIdMap();
-    this.observeFilterByLocation();
+    this.observeSearchFilterValueChanges();
+    this.observeOrderByDateValueChanges();
+  }
+
+  ngOnDestroy(): void {
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 
   onButtonClick(): void {
@@ -155,15 +184,57 @@ export class SearchComponent implements OnInit {
     this.fetchResults();
   }
 
+  private observeSearchFilterValueChanges(): void {
+    this.searchFilter.valueChanges
+      .pipe(
+        takeUntil(this.unsubscribe$),
+        debounceTime(250)
+      )
+      .subscribe(search => {
+        const filteredItems = this.results.filter(item => {
+          const normalizedSearch = (search + '').toLowerCase();
+          return item.sell.name.toLowerCase().includes(normalizedSearch) || item.buy.name.toLowerCase().includes(normalizedSearch);
+        });
+        this.initTableDataSource(filteredItems);
+      });
+  }
+
+  private observeOrderByDateValueChanges(): void {
+    this.orderByDate.valueChanges
+      .pipe(
+        takeUntil(this.unsubscribe$)
+      )
+      .subscribe((orderByDate: 'deactivate' | 'buy' | 'sell') => {
+        const filteredItems = [...this.results].sort((a, b) => {
+          switch (orderByDate) {
+            case 'deactivate':
+              return 0;
+            case 'buy':
+              return +new Date(b.buy.sell_price_min_date) - +new Date(a.buy.sell_price_min_date);
+            case 'sell':
+              return +new Date(b.sell.buy_price_max_date) - +new Date(a.sell.buy_price_max_date);
+          }
+        });
+        this.initTableDataSource(filteredItems);
+      });
+  }
+
   private fetchResults(): void {
     const url = this.baseUrl + this.getSelectedItemTypeUrl();
     this.httpClient.get<Item[]>(url)
       .subscribe(items => {
         this.isLoading = false;
-        this.results = new MatTableDataSource(this.evaluateResults(items));
-        this.results.sort = this.sort;
-        this.results.paginator = this.paginator;
+        this.results = this.evaluateResults(items);
+        this.searchFilter.patchValue('');
+        this.orderByDate.patchValue('deactivate');
+        this.initTableDataSource(this.results);
       });
+  }
+
+  private initTableDataSource(results: Result[]): void {
+    this.dataSource = new MatTableDataSource(results);
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
   }
 
   private getSelectedItemTypeUrl(): string {
@@ -217,62 +288,40 @@ export class SearchComponent implements OnInit {
   private evaluateResults(items: Item[]): Result[] {
     const formValue = this.searchForm.value;
     const maxTotSilver = formValue.silver;
-    const filterByLocation = formValue.filterByLocation;
     const groupedByItemId = _.groupBy(items, 'item_id');
     const ranking: Result[] = [];
     Object.keys(groupedByItemId).forEach(itemId => {
       const entries = groupedByItemId[itemId];
-      let currentHighestBuyPrice: Item;
-      let currentLowestSell: Item;
-      entries.forEach(entry => {
-        const entryBuyPriceMax = entry.buy_price_max;
-        const isEntryBuyPriceMaxAcceptable = entryBuyPriceMax > 0 &&
-          (!currentHighestBuyPrice || entryBuyPriceMax > currentHighestBuyPrice.buy_price_max) &&
-          (!filterByLocation || formValue.sellAt === entry.city);
-        if (isEntryBuyPriceMaxAcceptable) {
-          currentHighestBuyPrice = entry;
-        }
-        const entrySellPriceMin = entry.sell_price_min;
+      entries.forEach((entrySell, entrySellIndex) => {
+        const entrySellPriceMin = entrySell.sell_price_min;
+        const aDayAgo = new Date();
+        aDayAgo.setDate(aDayAgo.getDate() - 1);
         const isEntrySellPriceMinAcceptable = entrySellPriceMin > 0 &&
+          +new Date(entrySell.sell_price_min_date) > +aDayAgo &&
           entrySellPriceMin <= maxTotSilver &&
-          (!currentLowestSell || entrySellPriceMin < currentLowestSell.sell_price_min) &&
-          (!filterByLocation || formValue.buyAt === entry.city);
+          (formValue.buyAt === 'all' || formValue.buyAt === entrySell.city);
         if (isEntrySellPriceMinAcceptable) {
-          currentLowestSell = entry;
+          entries.forEach((entryBuy, entryBuyIndex) => {
+            const entryBuyPriceMax = entryBuy.buy_price_max;
+            const isEntryBuyPriceMaxAcceptable = entrySellIndex !== entryBuyIndex &&
+              +new Date(entrySell.sell_price_min_date) > +aDayAgo &&
+              entryBuyPriceMax > entrySellPriceMin &&
+              (formValue.sellAt === 'all' || formValue.sellAt === entryBuy.city);
+            if (isEntryBuyPriceMaxAcceptable) {
+              const profit = entryBuyPriceMax - entrySellPriceMin;
+              const name = this.itemsIdMap.get(itemId);
+              ranking.push({
+                buy: {...entrySell, name},
+                sell: {...entryBuy, name},
+                profit,
+                profitPerc: profit / entrySellPriceMin * 100
+              });
+            }
+          });
         }
-      });
-      if (!currentHighestBuyPrice || !currentLowestSell) {
-        return;
-      }
-      const sellPriceMin = currentLowestSell.sell_price_min;
-      const profit = currentHighestBuyPrice.buy_price_max - sellPriceMin;
-      if (profit <= 0) {
-        return;
-      }
-      const name = this.itemsIdMap.get(currentLowestSell.item_id);
-      ranking.push({
-        buy: {...currentLowestSell, name},
-        sell: {...currentHighestBuyPrice, name},
-        profit,
-        profitPerc: profit / sellPriceMin * 100
       });
     });
     return _.sortBy(ranking, 'profitPerc').reverse();
-  }
-
-  private observeFilterByLocation(): void {
-    const filterByLocationControl = this.searchForm.controls.filterByLocation;
-    filterByLocationControl.valueChanges
-      .pipe(distinctUntilChanged())
-      .subscribe(filterByLocation => {
-        if (filterByLocation) {
-          this.searchForm.controls.buyAt.enable();
-          this.searchForm.controls.sellAt.enable();
-        } else {
-          this.searchForm.controls.buyAt.disable();
-          this.searchForm.controls.sellAt.disable();
-        }
-      });
   }
 
   private initItemsIdMap(): void {
@@ -287,4 +336,5 @@ export class SearchComponent implements OnInit {
         })
       ).subscribe(data => this.itemsIdMap = data);
   }
+
 }
