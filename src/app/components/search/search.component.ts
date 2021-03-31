@@ -37,11 +37,12 @@ import {Subject} from 'rxjs';
         <mat-form-field>
           <mat-label>Quality?</mat-label>
           <mat-select [formControl]="searchForm.controls.quality">
+            <mat-option value="all">All</mat-option>
             <mat-option value="0">Normal</mat-option>
             <mat-option value="1">Good</mat-option>
-            <mat-option value="3">Outstanding</mat-option>
-            <mat-option value="4">Excellent</mat-option>
-            <mat-option value="5">Masterpiece</mat-option>
+            <mat-option value="2">Outstanding</mat-option>
+            <mat-option value="3">Excellent</mat-option>
+            <mat-option value="4">Masterpiece</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
@@ -73,8 +74,8 @@ import {Subject} from 'rxjs';
         <mat-label>Order by date</mat-label>
         <mat-select [formControl]="orderByDate">
           <mat-option value="deactivate">Deactivate</mat-option>
-          <mat-option value="buy">Buy Items</mat-option>
-          <mat-option value="sell">Sell Items</mat-option>
+          <mat-option value="buy">Buy</mat-option>
+          <mat-option value="sell">Sell</mat-option>
         </mat-select>
       </mat-form-field>
       <table mat-table [dataSource]="dataSource" matSort>
@@ -83,7 +84,7 @@ import {Subject} from 'rxjs';
           <th mat-header-cell *matHeaderCellDef>Buy</th>
           <td mat-cell *matCellDef="let element">
             <app-item [itemCity]="element.buy.city" [itemId]="element.buy.item_id" [itemPriceDate]="element.buy.sell_price_min_date"
-                      [itemPrice]="element.buy.sell_price_min" [itemName]="element.buy.name"></app-item>
+                      [itemPrice]="element.buy.sell_price_min" [itemName]="element.buy.name" [itemQuality]="element.buy.quality"></app-item>
           </td>
         </ng-container>
 
@@ -91,7 +92,7 @@ import {Subject} from 'rxjs';
           <th mat-header-cell *matHeaderCellDef>Sell</th>
           <td mat-cell *matCellDef="let element">
             <app-item [itemCity]="element.sell.city" [itemId]="element.sell.item_id" [itemPriceDate]="element.sell.buy_price_max_date"
-                      [itemPrice]="element.sell.buy_price_max" [itemName]="element.sell.name"></app-item>
+                      [itemPrice]="element.sell.buy_price_max" [itemName]="element.sell.name" [itemQuality]="element.sell.quality"></app-item>
           </td>
         </ng-container>
 
@@ -127,7 +128,7 @@ export class SearchComponent implements OnInit, OnDestroy {
     itemType: new FormControl(ItemType.Accessories),
     buyAt: new FormControl('all'),
     sellAt: new FormControl('all'),
-    quality: new FormControl('0')
+    quality: new FormControl('all')
   });
   searchFilter = new FormControl('');
   orderByDate = new FormControl('deactivate');
@@ -232,7 +233,9 @@ export class SearchComponent implements OnInit, OnDestroy {
 
   private fetchResults(): void {
     const url = this.baseUrl + this.getSelectedItemTypeUrl();
-    this.httpClient.get<Item[]>(url + '.json', {params: {qualities: this.searchForm.value.quality}})
+    const quality = this.searchForm.value.quality;
+    const qualities = quality === 'all' ? '0,1,2,3,4,5' : quality;
+    this.httpClient.get<Item[]>(url + '.json', {params: {qualities}})
       .subscribe(items => {
         this.isLoading = false;
         this.results = this.evaluateResults(items);
@@ -301,7 +304,6 @@ export class SearchComponent implements OnInit, OnDestroy {
     const maxTotSilver = formValue.silver;
     const groupedByItemId = _.groupBy(items, 'item_id');
     const ranking: Result[] = [];
-    console.log(items);
     Object.keys(groupedByItemId).forEach(itemId => {
       const entries = groupedByItemId[itemId];
       entries.forEach((entrySell, entrySellIndex) => {
