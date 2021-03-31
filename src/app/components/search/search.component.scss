@@ -1,0 +1,70 @@
+.data-project-banner {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.search-form {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: top 200ms ease-in-out;
+  display: flex;
+  flex-direction: column;
+
+  &.with-results {
+    top: 50px;
+    transform: translateX(-50%);
+  }
+
+  .second-row {
+    display: flex;
+    align-items: center;
+
+    .silver-form-control {
+      margin-left: 20px;
+    }
+  }
+
+  .first-row {
+    display: flex;
+    align-items: center;
+
+    .buy-at-control {
+      margin-right: 20px;
+    }
+
+    .sell-at-control {
+      margin-right: 20px;
+    }
+  }
+}
+
+.results {
+  width: 80%;
+  min-width: 760px;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: top 500ms ease-in-out;
+  height: 0;
+  overflow: hidden;
+
+  table {
+    width: 100%;
+  }
+
+  .font-bold {
+    font-weight: 430;
+    font-size: 13px;
+  }
+
+  &.visible {
+    height: auto;
+    top: 190px;
+    transform: translateX(-50%);
+  }
+}

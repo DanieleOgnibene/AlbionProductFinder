@@ -1,0 +1,23 @@
+export enum ItemType {
+  Accessories = 'Accessories',
+  Armors = 'Armors',
+  Artefacts = 'Artefacts',
+  CityResources = 'City Resources',
+  Consumables = 'Consumables',
+  Farmable = 'Farmable',
+  Forniture = 'Forniture',
+  GatheringGear = 'Gathering Gear',
+  LuxuryGoods = 'Luxury Goods',
+  Magic = 'Magic',
+  Materials = 'Materials',
+  Melee = 'Melee',
+  Mount = 'Mount',
+  OffHand = 'Off-Hand',
+  Other = 'Other',
+  Product = 'Product',
+  Ranged = 'Ranged',
+  Resources = 'Resources',
+  Token = 'Token',
+  Tool = 'Tool',
+  Trophies = 'Trophies'
+}

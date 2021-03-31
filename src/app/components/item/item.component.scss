@@ -11,8 +11,13 @@
     flex-direction: column;
     justify-content: center;
 
-    .price {
-      margin-bottom: 10px;
+    .font-bold {
+      font-weight: 430;
+      font-size: 13px;
+    }
+
+    .font-bold, .date {
+      margin-bottom: 5px;
     }
   }
 }

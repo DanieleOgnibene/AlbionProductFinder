@@ -10,4 +10,5 @@ export interface Item {
   sell_price_max_date: Date;
   sell_price_min: number;
   sell_price_min_date: Date;
+  name?: string;
 }
