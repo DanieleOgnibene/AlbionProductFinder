@@ -3,17 +3,15 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build --prod",
+    "start": "node dist/AlbionProductFinder/server/main.js",
+    "build": "ng build --prod && ng run AlbionProductFinder:server",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
     "dev:ssr": "ng run AlbionProductFinder:serve-ssr",
     "serve:ssr": "node dist/AlbionProductFinder/server/main.js",
     "build:ssr": "ng build && ng run AlbionProductFinder:server",
-    "prerender": "ng run AlbionProductFinder:prerender",
-    "start:heroku":"node dist/server",
-    "postinstall":"npm run build:ssr"
+    "prerender": "ng run AlbionProductFinder:prerender"
   },
   "private": true,
   "dependencies": {
