@@ -280,7 +280,6 @@ export class SearchComponent implements OnInit {
       .pipe(
         map(items => {
           const itemsIdMap = new Map<string, string>();
-          console.log(items);
           items.forEach(item => {
             itemsIdMap.set(item.UniqueName, item?.LocalizedNames ? item.LocalizedNames['EN-US'] : '');
           });
