@@ -25,7 +25,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     SearchComponent
   ],
   imports: [
-    BrowserModule,
+    BrowserModule.withServerTransition({ appId: 'serverApp' }),
     HttpClientModule,
     ReactiveFormsModule,
     BrowserAnimationsModule,
