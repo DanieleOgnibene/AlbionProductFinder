@@ -1,7 +1,7 @@
 import {NgModule} from '@angular/core';
 import {BrowserModule} from '@angular/platform-browser';
 import {AppComponent} from './app.component';
-import {HttpClientModule} from '@angular/common/http';
+import {HTTP_INTERCEPTORS, HttpClientModule} from '@angular/common/http';
 import {ReactiveFormsModule} from '@angular/forms';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {MatCardModule} from '@angular/material/card';
@@ -17,6 +17,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {SearchComponent} from './components/search/search.component';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {BrowserStateInterceptor} from './components/interceptors/browser-state.interceptor';
 
 @NgModule({
   declarations: [
@@ -40,6 +41,13 @@ import {MatTooltipModule} from '@angular/material/tooltip';
     MatSelectModule,
     MatCheckboxModule,
     MatTooltipModule
+  ],
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: BrowserStateInterceptor,
+      multi: true
+    }
   ],
   bootstrap: [
     AppComponent
