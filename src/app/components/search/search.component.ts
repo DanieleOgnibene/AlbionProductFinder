@@ -214,7 +214,6 @@ export class SearchComponent implements OnInit, OnDestroy {
         this.results = this.evaluateResults(items);
         this.searchFilter.patchValue('');
         this.initTableDataSource(this.results);
-        this.sort.sort({id: 'profitPerc', start: 'desc', disableClear: true});
       });
   }
 
