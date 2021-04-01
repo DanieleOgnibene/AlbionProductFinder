@@ -18,6 +18,7 @@ import {SearchComponent} from './components/search/search.component';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserStateInterceptor} from './components/interceptors/browser-state.interceptor';
+import {FlexModule} from '@angular/flex-layout';
 
 @NgModule({
   declarations: [
@@ -41,7 +42,8 @@ import {BrowserStateInterceptor} from './components/interceptors/browser-state.i
     MatPaginatorModule,
     MatSelectModule,
     MatCheckboxModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FlexModule
   ],
   providers: [
     {

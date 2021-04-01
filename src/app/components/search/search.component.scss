@@ -3,6 +3,8 @@
   top: 5px;
   left: 50%;
   transform: translateX(-50%);
+  font-size: 12px;
+  color: #767676;
 }
 
 .search-form {
@@ -11,47 +13,24 @@
   left: 50%;
   transform: translate(-50%, -50%);
   transition: top 200ms ease-in-out;
-  display: flex;
-  flex-direction: column;
 
   &.with-results {
     top: 50px;
     transform: translateX(-50%);
   }
 
-  .second-row {
-    display: flex;
-    align-items: center;
-
-    .silver-form-control {
-      margin-left: 20px;
-    }
-  }
-
-  .first-row {
-    display: flex;
-    align-items: center;
-
-    .buy-at-control {
-      margin-right: 20px;
-    }
-
-    .sell-at-control {
-      margin-right: 20px;
-    }
-  }
 }
 
 .results {
   width: 80%;
-  min-width: 760px;
+  max-width: 1020px;
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translate(-50%, -50%);
   transition: top 500ms ease-in-out;
   height: 0;
-  overflow: hidden;
+  overflow: auto;
 
   table {
     width: 100%;
@@ -63,12 +42,16 @@
   }
 
   .search-item-control {
-    margin-right: 20px;
+    width: 220px;
   }
 
   &.visible {
     height: auto;
-    top: 190px;
     transform: translateX(-50%);
+    top: 406px;
+
+    @media only screen and (min-width: 960px){
+      top: 190px;
+    }
   }
 }

@@ -19,7 +19,7 @@ import {Subject} from 'rxjs';
     <small><i class="data-project-banner">Prices are provided by the <a href="https://www.albion-online-data.com/" target="_blank">Albion
       Online Data Project</a></i></small>
     <div [ngClass]="{ 'with-results': !!dataSource }" class="search-form">
-      <div class="first-row">
+      <div class="first-row" fxLayout.gt-sm="row" fxLayout="column" fxLayoutGap="10px">
         <mat-form-field class="buy-at-control">
           <mat-label>Where do you want to buy?</mat-label>
           <mat-select [formControl]="searchForm.controls.buyAt">
@@ -46,14 +46,14 @@ import {Subject} from 'rxjs';
           </mat-select>
         </mat-form-field>
       </div>
-      <div class="second-row">
+      <div class="second-row" fxLayout.gt-sm="row" fxLayout="column" fxLayoutGap="10px">
         <mat-form-field>
           <mat-label>Type</mat-label>
           <mat-select [formControl]="searchForm.controls.itemType">
             <mat-option *ngFor="let itemType of itemTypes" [value]="itemType">{{itemType}}</mat-option>
           </mat-select>
         </mat-form-field>
-        <div class="silver-form-control">
+        <div class="silver-form-control" fxLayout="row">
           <mat-form-field>
             <mat-label>Max price? (silver)</mat-label>
             <input [formControl]="searchForm.controls.silver" matInput placeholder="Max price" type="number">
@@ -65,23 +65,17 @@ import {Subject} from 'rxjs';
       </div>
     </div>
 
-    <div [ngClass]="{ visible: !!dataSource }" class="results">
-      <mat-form-field class="search-item-control">
-        <mat-label>Search an item</mat-label>
-        <input matInput [formControl]="searchFilter" placeholder="Search">
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>Order by date</mat-label>
-        <mat-select [formControl]="orderByDate">
-          <mat-option value="deactivate">Deactivate</mat-option>
-          <mat-option value="buy">Buy</mat-option>
-          <mat-option value="sell">Sell</mat-option>
-        </mat-select>
-      </mat-form-field>
+    <div [ngClass]="{ visible: !!dataSource }" class="results" fxLayout="column">
+      <div fxFlex="100" fxLayoutAlign="center" fxLayoutAlign.gt-sm="start">
+        <mat-form-field class="search-item-control">
+          <mat-label>Search an item</mat-label>
+          <input matInput [formControl]="searchFilter" placeholder="Search">
+        </mat-form-field>
+      </div>
       <table mat-table [dataSource]="dataSource" matSort>
 
         <ng-container matColumnDef="buy">
-          <th mat-header-cell *matHeaderCellDef>Buy</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Buy</th>
           <td mat-cell *matCellDef="let element">
             <app-item [itemCity]="element.buy.city" [itemId]="element.buy.item_id" [itemPriceDate]="element.buy.sell_price_min_date"
                       [itemPrice]="element.buy.sell_price_min" [itemName]="element.buy.name" [itemQuality]="element.buy.quality"></app-item>
@@ -89,10 +83,11 @@ import {Subject} from 'rxjs';
         </ng-container>
 
         <ng-container matColumnDef="sell">
-          <th mat-header-cell *matHeaderCellDef>Sell</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Sell</th>
           <td mat-cell *matCellDef="let element">
             <app-item [itemCity]="element.sell.city" [itemId]="element.sell.item_id" [itemPriceDate]="element.sell.buy_price_max_date"
-                      [itemPrice]="element.sell.buy_price_max" [itemName]="element.sell.name" [itemQuality]="element.sell.quality"></app-item>
+                      [itemPrice]="element.sell.buy_price_max" [itemName]="element.sell.name"
+                      [itemQuality]="element.sell.quality"></app-item>
           </td>
         </ng-container>
 
@@ -131,7 +126,6 @@ export class SearchComponent implements OnInit, OnDestroy {
     quality: new FormControl('all')
   });
   searchFilter = new FormControl('');
-  orderByDate = new FormControl('deactivate');
   displayedColumns: string[] = ['buy', 'sell', 'profit', 'profitPerc'];
   itemTypes = Object.values(ItemType);
   cities = Object.values(City);
@@ -177,7 +171,6 @@ export class SearchComponent implements OnInit, OnDestroy {
     }
     this.initItemsIdMap();
     this.observeSearchFilterValueChanges();
-    this.observeOrderByDateValueChanges();
   }
 
   ngOnDestroy(): void {
@@ -211,26 +204,6 @@ export class SearchComponent implements OnInit, OnDestroy {
       });
   }
 
-  private observeOrderByDateValueChanges(): void {
-    this.orderByDate.valueChanges
-      .pipe(
-        takeUntil(this.unsubscribe$)
-      )
-      .subscribe((orderByDate: 'deactivate' | 'buy' | 'sell') => {
-        const filteredItems = [...this.results].sort((a, b) => {
-          switch (orderByDate) {
-            case 'deactivate':
-              return 0;
-            case 'buy':
-              return +new Date(b.buy.sell_price_min_date) - +new Date(a.buy.sell_price_min_date);
-            case 'sell':
-              return +new Date(b.sell.buy_price_max_date) - +new Date(a.sell.buy_price_max_date);
-          }
-        });
-        this.initTableDataSource(filteredItems);
-      });
-  }
-
   private fetchResults(): void {
     const url = this.baseUrl + this.getSelectedItemTypeUrl();
     const quality = this.searchForm.value.quality;
@@ -240,15 +213,72 @@ export class SearchComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         this.results = this.evaluateResults(items);
         this.searchFilter.patchValue('');
-        this.orderByDate.patchValue('deactivate');
         this.initTableDataSource(this.results);
+        this.sort.sort({id: 'profitPerc', start: 'desc', disableClear: true});
       });
   }
 
   private initTableDataSource(results: Result[]): void {
     this.dataSource = new MatTableDataSource(results);
     this.dataSource.sort = this.sort;
+    this.dataSource.sortData = (data, sort) => {
+      const key = sort.active as keyof Result;
+      switch (sort.direction) {
+        case 'asc':
+          return this.sortResultsAscOrder(data, key);
+        case 'desc':
+          return this.sortResultsDescOrder(data, key);
+        case '':
+          return data;
+      }
+    };
+    this.sort.start = 'desc';
+    this.sort.disableClear = true;
     this.dataSource.paginator = this.paginator;
+  }
+
+  private sortResultsAscOrder(result: Result[], key: keyof Result): Result[] {
+    const resultCopy = [...result];
+    switch (key) {
+      case 'buy':
+        return resultCopy.sort((a, b) => {
+          return +new Date(a.buy.sell_price_min_date) - +new Date(b.buy.sell_price_min_date);
+        });
+      case 'sell':
+        return resultCopy.sort((a, b) => {
+          return +new Date(a.sell.buy_price_max_date) - +new Date(b.sell.buy_price_max_date);
+        });
+      case 'profit':
+        return resultCopy.sort((a, b) => {
+          return a.profit - b.profit;
+        });
+      case 'profitPerc':
+        return resultCopy.sort((a, b) => {
+          return a.profitPerc - b.profitPerc;
+        });
+    }
+  }
+
+  private sortResultsDescOrder(result: Result[], key: keyof Result): Result[] {
+    const resultCopy = [...result];
+    switch (key) {
+      case 'buy':
+        return resultCopy.sort((a, b) => {
+          return +new Date(b.buy.sell_price_min_date) - +new Date(a.buy.sell_price_min_date);
+        });
+      case 'sell':
+        return resultCopy.sort((a, b) => {
+          return +new Date(b.sell.buy_price_max_date) - +new Date(a.sell.buy_price_max_date);
+        });
+      case 'profit':
+        return resultCopy.sort((a, b) => {
+          return b.profit - a.profit;
+        });
+      case 'profitPerc':
+        return resultCopy.sort((a, b) => {
+          return b.profitPerc - a.profitPerc;
+        });
+    }
   }
 
   private getSelectedItemTypeUrl(): string {
@@ -338,7 +368,7 @@ export class SearchComponent implements OnInit, OnDestroy {
         }
       });
     });
-    return _.sortBy(ranking, 'profitPerc').reverse();
+    return ranking;
   }
 
   private initItemsIdMap(): void {
