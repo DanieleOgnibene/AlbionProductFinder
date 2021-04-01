@@ -19,96 +19,107 @@ import {Subject} from 'rxjs';
     <small><i class="data-project-banner">Prices are provided by the <a href="https://www.albion-online-data.com/" target="_blank">Albion
       Online Data Project</a></i></small>
     <div [ngClass]="{ 'with-results': !!dataSource }" class="search-form">
-      <div class="first-row" fxLayout.gt-sm="row" fxLayout="column" fxLayoutGap="10px">
-        <mat-form-field class="buy-at-control">
-          <mat-label>Where do you want to buy?</mat-label>
-          <mat-select [formControl]="searchForm.controls.buyAt">
-            <mat-option value="all">All</mat-option>
-            <mat-option *ngFor="let city of cities" [value]="city">{{city}}</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field class="sell-at-control">
-          <mat-label>Where do you want to sell?</mat-label>
-          <mat-select [formControl]="searchForm.controls.sellAt">
-            <mat-option value="all">All</mat-option>
-            <mat-option *ngFor="let city of cities" [value]="city">{{city}}</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Quality?</mat-label>
-          <mat-select [formControl]="searchForm.controls.quality">
-            <mat-option value="all">All</mat-option>
-            <mat-option value="0">Normal</mat-option>
-            <mat-option value="1">Good</mat-option>
-            <mat-option value="2">Outstanding</mat-option>
-            <mat-option value="3">Excellent</mat-option>
-            <mat-option value="4">Masterpiece</mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-      <div class="second-row" fxLayout.gt-sm="row" fxLayout="column" fxLayoutGap="10px">
-        <mat-form-field>
-          <mat-label>Type</mat-label>
-          <mat-select [formControl]="searchForm.controls.itemType">
-            <mat-option *ngFor="let itemType of itemTypes" [value]="itemType">{{itemType}}</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <div class="silver-form-control" fxLayout="row">
-          <mat-form-field>
-            <mat-label>Max price? (silver)</mat-label>
-            <input [formControl]="searchForm.controls.silver" matInput placeholder="Max price" type="number">
-          </mat-form-field>
-          <button mat-icon-button (click)="onButtonClick()" [disabled]="isLoading">
-            <mat-icon>search</mat-icon>
-          </button>
-        </div>
-      </div>
+      <mat-card style="padding: 17.5px 17.5px 0 17.5px" class="mat-elevation-z3">
+        <mat-card-content>
+          <div class="first-row" fxLayout.gt-sm="row" fxLayout="column" fxLayoutGap="10px">
+            <mat-form-field class="buy-at-control">
+              <mat-label>Where do you want to buy?</mat-label>
+              <mat-select [formControl]="searchForm.controls.buyAt">
+                <mat-option value="all">All</mat-option>
+                <mat-option *ngFor="let city of cities" [value]="city">{{city}}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="sell-at-control">
+              <mat-label>Where do you want to sell?</mat-label>
+              <mat-select [formControl]="searchForm.controls.sellAt">
+                <mat-option value="all">All</mat-option>
+                <mat-option *ngFor="let city of cities" [value]="city">{{city}}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Quality?</mat-label>
+              <mat-select [formControl]="searchForm.controls.quality">
+                <mat-option value="all">All</mat-option>
+                <mat-option value="1">Normal</mat-option>
+                <mat-option value="2">Good</mat-option>
+                <mat-option value="3">Outstanding</mat-option>
+                <mat-option value="4">Excellent</mat-option>
+                <mat-option value="5">Masterpiece</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="second-row" fxLayout.gt-sm="row" fxLayout="column" fxLayoutGap="10px">
+            <mat-form-field>
+              <mat-label>Type</mat-label>
+              <mat-select [formControl]="searchForm.controls.itemType">
+                <mat-option *ngFor="let itemType of itemTypes" [value]="itemType">{{itemType}}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <div class="silver-form-control" fxLayout="row">
+              <mat-form-field>
+                <mat-label>Max price? (silver)</mat-label>
+                <input [formControl]="searchForm.controls.silver" matInput placeholder="Max price" type="number">
+              </mat-form-field>
+              <button mat-icon-button (click)="onButtonClick()" [disabled]="isLoading">
+                <mat-icon>search</mat-icon>
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
+    <div [ngClass]="{ visible: !!dataSource }" fxLayout="column" class="results mat-elevation-z3">
+      <mat-card>
+        <mat-card-header>
+          <div fxFlex="100" fxLayoutAlign="space-between">
+            <mat-form-field class="search-item-control">
+              <mat-label>Search an item</mat-label>
+              <input matInput [formControl]="searchFilter" placeholder="Search">
+            </mat-form-field>
+            <small style="color: #767676"><i>NB. Only profitable trades are visible and only with prices updated in the last day</i></small>
+          </div>
+        </mat-card-header>
+        <mat-card-content>
+          <table mat-table [dataSource]="dataSource" matSort>
 
-    <div [ngClass]="{ visible: !!dataSource }" class="results" fxLayout="column">
-      <div fxFlex="100" fxLayoutAlign="center" fxLayoutAlign.gt-sm="start">
-        <mat-form-field class="search-item-control">
-          <mat-label>Search an item</mat-label>
-          <input matInput [formControl]="searchFilter" placeholder="Search">
-        </mat-form-field>
-      </div>
-      <table mat-table [dataSource]="dataSource" matSort>
+            <ng-container matColumnDef="buy">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Buy</th>
+              <td mat-cell *matCellDef="let element">
+                <app-item [itemCity]="element.buy.city" [itemId]="element.buy.item_id" [itemPriceDate]="element.buy.sell_price_min_date"
+                          [itemPrice]="element.buy.sell_price_min" [itemName]="element.buy.name"
+                          [itemQuality]="element.buy.quality"></app-item>
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="buy">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Buy</th>
-          <td mat-cell *matCellDef="let element">
-            <app-item [itemCity]="element.buy.city" [itemId]="element.buy.item_id" [itemPriceDate]="element.buy.sell_price_min_date"
-                      [itemPrice]="element.buy.sell_price_min" [itemName]="element.buy.name" [itemQuality]="element.buy.quality"></app-item>
-          </td>
-        </ng-container>
+            <ng-container matColumnDef="sell">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Sell</th>
+              <td mat-cell *matCellDef="let element">
+                <app-item [itemCity]="element.sell.city" [itemId]="element.sell.item_id" [itemPriceDate]="element.sell.buy_price_max_date"
+                          [itemPrice]="element.sell.buy_price_max" [itemName]="element.sell.name"
+                          [itemQuality]="element.sell.quality"></app-item>
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="sell">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Sell</th>
-          <td mat-cell *matCellDef="let element">
-            <app-item [itemCity]="element.sell.city" [itemId]="element.sell.item_id" [itemPriceDate]="element.sell.buy_price_max_date"
-                      [itemPrice]="element.sell.buy_price_max" [itemName]="element.sell.name"
-                      [itemQuality]="element.sell.quality"></app-item>
-          </td>
-        </ng-container>
+            <ng-container matColumnDef="profit">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Profit</th>
+              <td mat-cell *matCellDef="let element">
+                <div class="font-bold">{{element.profit | currency: 'USD'}}</div>
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="profit">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Profit</th>
-          <td mat-cell *matCellDef="let element">
-            <div class="font-bold">{{element.profit | currency: 'USD'}}</div>
-          </td>
-        </ng-container>
+            <ng-container matColumnDef="profitPerc">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Profit %</th>
+              <td mat-cell *matCellDef="let element" class="font-bold">
+                <div class="font-bold">{{(element.profitPerc | number: '.2-2') + '%'}}</div>
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="profitPerc">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Profit %</th>
-          <td mat-cell *matCellDef="let element" class="font-bold">
-            <div class="font-bold">{{(element.profitPerc | number: '.2-2') + '%'}}</div>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      </table>
-      <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+          <mat-paginator [pageSizeOptions]="[25, 50, 100]" showFirstLastButtons></mat-paginator>
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   styleUrls: ['./search.component.scss']
@@ -207,7 +218,7 @@ export class SearchComponent implements OnInit, OnDestroy {
   private fetchResults(): void {
     const url = this.baseUrl + this.getSelectedItemTypeUrl();
     const quality = this.searchForm.value.quality;
-    const qualities = quality === 'all' ? '0,1,2,3,4,5' : quality;
+    const qualities = quality === 'all' ? '1,2,3,4,5' : quality;
     this.httpClient.get<Item[]>(url + '.json', {params: {qualities}})
       .subscribe(items => {
         this.isLoading = false;

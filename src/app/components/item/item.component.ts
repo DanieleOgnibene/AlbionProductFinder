@@ -13,11 +13,11 @@ import {City} from '../../interfaces/city';
           <div [ngStyle]="cityStyles" class="badge city" matTooltip="City">{{itemCity}}</div>
           <div class="quality" matTooltip="Quality">
             <ng-container [ngSwitch]="itemQuality">
-              <span *ngSwitchCase="0" class="badge" style="color: white; background-color: #9e9d99">Normal</span>
-              <span *ngSwitchCase="1" class="badge" style="color: white; background-color: #6782a6">Good</span>
-              <span *ngSwitchCase="2" class="badge" style="color: white; background-color: #774a29">Outstanding</span>
-              <span *ngSwitchCase="3" class="badge" style="color: black; background-color: #f6f9f9">Excellent</span>
-              <span *ngSwitchCase="4" class="badge" style="color: white; background-color: #fea52f">Masterpiece</span>
+              <span *ngSwitchCase="1" class="badge" style="color: white; background-color: #9e9d99">Normal</span>
+              <span *ngSwitchCase="2" class="badge" style="color: white; background-color: #6782a6">Good</span>
+              <span *ngSwitchCase="3" class="badge" style="color: white; background-color: #774a29">Outstanding</span>
+              <span *ngSwitchCase="4" class="badge" style="color: black; background-color: #f6f9f9">Excellent</span>
+              <span *ngSwitchCase="5" class="badge" style="color: white; background-color: #fea52f">Masterpiece</span>
             </ng-container>
           </div>
         </div>
