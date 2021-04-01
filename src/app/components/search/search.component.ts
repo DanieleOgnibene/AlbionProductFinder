@@ -101,7 +101,7 @@ import {Subject} from 'rxjs';
         <ng-container matColumnDef="profitPerc">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Profit %</th>
           <td mat-cell *matCellDef="let element" class="font-bold">
-            <div class="font-bold">{{(element.profitPerc | number: '.2') + '%'}}</div>
+            <div class="font-bold">{{(element.profitPerc | number: '.2-2') + '%'}}</div>
           </td>
         </ng-container>
 
