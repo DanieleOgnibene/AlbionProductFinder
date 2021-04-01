@@ -22,3 +22,15 @@ body {
   vertical-align: baseline;
   border-radius: .25rem;
 }
+
+.splash-screen {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  background-color: white;
+  z-index: 100;
+
+  &.hidden {
+    display: none;
+  }
+}
